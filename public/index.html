@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#0b0b0d" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<title>LG Remote</title>
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="device">
+
+  <header class="bar">
+    <div class="brand">
+      <span class="logo">LG</span>
+      <span class="sub">remote</span>
+    </div>
+    <button id="statusDot" class="status" title="connection">
+      <span class="dot"></span>
+      <span id="statusText" class="status-text">…</span>
+    </button>
+  </header>
+
+  <!-- power + inputs row -->
+  <section class="row top">
+    <button class="key power" data-act="power" title="Power off">
+      <svg viewBox="0 0 24 24"><path d="M12 3v9" /><path d="M6.5 7a8 8 0 1 0 11 0" /></svg>
+    </button>
+    <button class="key flat" data-btn="HOME">home</button>
+    <button class="key flat" data-btn="BACK">back</button>
+    <button class="key flat" data-btn="INFO">info</button>
+  </section>
+
+  <!-- d-pad -->
+  <section class="dpad" aria-label="navigation">
+    <button class="d up"    data-btn="UP"><svg viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="d left"  data-btn="LEFT"><svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg></button>
+    <button class="d ok"    data-btn="ENTER">OK</button>
+    <button class="d right" data-btn="RIGHT"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button class="d down"  data-btn="DOWN"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+  </section>
+
+  <!-- rockers -->
+  <section class="rockers">
+    <div class="rocker">
+      <button class="r" data-act="volUp">+</button>
+      <span class="r-label">vol</span>
+      <button class="r" data-act="volDown">−</button>
+    </div>
+    <button class="mute" id="muteBtn" data-act="mute" title="Mute">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/></svg>
+    </button>
+    <div class="rocker">
+      <button class="r" data-act="chUp">∧</button>
+      <span class="r-label">ch</span>
+      <button class="r" data-act="chDown">∨</button>
+    </div>
+  </section>
+
+  <!-- media -->
+  <section class="row media">
+    <button class="key tiny" data-btn="REWIND"><svg viewBox="0 0 24 24"><path d="M11 5L4 12l7 7M20 5l-7 7 7 7"/></svg></button>
+    <button class="key tiny" data-btn="PLAY"><svg viewBox="0 0 24 24" class="fill"><path d="M7 5v14l11-7z"/></svg></button>
+    <button class="key tiny" data-btn="PAUSE"><svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg></button>
+    <button class="key tiny" data-btn="FASTFORWARD"><svg viewBox="0 0 24 24"><path d="M13 5l7 7-7 7M4 5l7 7-7 7"/></svg></button>
+  </section>
+
+  <!-- app shortcuts -->
+  <section class="apps">
+    <button class="app" data-app="netflix">Netflix</button>
+    <button class="app" data-app="youtube">YouTube</button>
+    <button class="app" data-app="primevideo">Prime</button>
+    <button class="app" data-app="disney">Disney+</button>
+    <button class="app" data-app="livetv">Live TV</button>
+    <button class="app" data-app="browser">Web</button>
+  </section>
+
+  <!-- mode + number toggle -->
+  <section class="row foot">
+    <button class="key flat" id="padToggle">123</button>
+    <button class="key flat" id="touchToggle">touchpad</button>
+  </section>
+
+  <!-- number pad (hidden by default) -->
+  <section class="numpad hidden" id="numpad">
+    <button data-btn="1">1</button><button data-btn="2">2</button><button data-btn="3">3</button>
+    <button data-btn="4">4</button><button data-btn="5">5</button><button data-btn="6">6</button>
+    <button data-btn="7">7</button><button data-btn="8">8</button><button data-btn="9">9</button>
+    <button data-btn="DASH">−</button><button data-btn="0">0</button><button data-btn="ENTER">↵</button>
+  </section>
+
+  <!-- touchpad (hidden by default) -->
+  <section class="touch hidden" id="touch">
+    <div class="touch-area" id="touchArea">touch &amp; drag · tap to click</div>
+  </section>
+
+</div>
+
+<!-- first-run / settings sheet -->
+<div class="sheet hidden" id="sheet">
+  <div class="sheet-card">
+    <h2>Connect your TV</h2>
+    <p id="sheetMsg">Enter your LG TV's IP address. With a DHCP reservation this only needs doing once.</p>
+    <input id="ipInput" inputmode="decimal" placeholder="192.168.1.x" autocomplete="off" />
+    <button id="ipSave" class="primary">Save &amp; connect</button>
+    <p class="hint" id="pairHint"></p>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>
