@@ -154,8 +154,19 @@ function renderChannels(list) {
 function openSheet() { $('#sheet').classList.remove('hidden'); }
 function closeSheet() { $('#sheet').classList.add('hidden'); }
 $('#statusDot').addEventListener('click', openSheet);
+// ---- IP input: convert locale comma -> dot so IPs are typeable everywhere
+const ipInput = $('#ipInput');
+ipInput.addEventListener('input', () => {
+  const fixed = ipInput.value.replace(/,/g, '.').replace(/[^0-9.]/g, '');
+  if (fixed !== ipInput.value) {
+    const pos = ipInput.selectionStart;
+    ipInput.value = fixed;
+    try { ipInput.setSelectionRange(pos, pos); } catch (_) {}
+  }
+});
+
 $('#ipSave').addEventListener('click', async () => {
-  const ip = $('#ipInput').value.trim();
+  const ip = $('#ipInput').value.trim().replace(/,/g, '.');
   if (!/^[0-9.]+$/.test(ip)) { $('#pairHint').textContent = 'That doesn\u2019t look like an IP.'; return; }
   $('#pairHint').textContent = 'Connecting…';
   try {
@@ -179,6 +190,9 @@ const KEYMAP = {
   Enter: 'ENTER', Backspace: 'BACK', Escape: 'EXIT', Home: 'HOME'
 };
 window.addEventListener('keydown', (e) => {
+  // Don't steal keys while the user is typing in a field (IP input, etc.)
+  const t = e.target;
+  if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
   if (KEYMAP[e.key]) { send({ action: 'button', name: KEYMAP[e.key] }); e.preventDefault(); }
   else if (e.key === '+' || e.key === '=') send({ action: 'volUp' });
   else if (e.key === '-') send({ action: 'volDown' });
