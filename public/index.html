@@ -85,6 +85,7 @@
   <!-- mode + number toggle -->
   <section class="row foot">
     <button class="key flat" id="srcToggle">source</button>
+    <button class="key flat" id="chToggle">channels</button>
     <button class="key flat" id="padToggle">123</button>
     <button class="key flat" id="touchToggle">touchpad</button>
   </section>
@@ -93,6 +94,13 @@
   <section class="sources hidden" id="sources">
     <div class="sources-grid" id="sourcesGrid">
       <div class="sources-loading">loading inputs…</div>
+    </div>
+  </section>
+
+  <!-- channel list (hidden by default) -->
+  <section class="channels hidden" id="channels">
+    <div class="ch-list" id="chList">
+      <div class="sources-loading">loading channels…</div>
     </div>
   </section>
 

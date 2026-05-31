@@ -152,6 +152,12 @@ wss.on('connection', (socket) => {
           break;
         }
         case 'switchInput': await tv.switchInput(cmd.inputId); break;
+        case 'getChannels': {
+          const r = await tv.getChannelList();
+          socket.send(JSON.stringify({ type: 'channels', list: r.channelList || [] }));
+          break;
+        }
+        case 'openChannel': await tv.openChannel(cmd.channelId); break;
         case 'toast':    await tv.toast(cmd.message || 'Hello from the bridge'); break;
         case 'getVolume':await tv._refreshStatus(); break;
         default: break;

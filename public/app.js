@@ -18,6 +18,7 @@ function connect() {
     else if (m.type === 'prompt') onPrompt();
     else if (m.type === 'volume') { muted = !!m.muted; reflectMute(); }
     else if (m.type === 'inputs') renderInputs(m.devices);
+    else if (m.type === 'channels') renderChannels(m.list);
     else if (m.type === 'err') toast(m.error || 'command failed');
   };
 }
@@ -69,14 +70,17 @@ document.querySelectorAll('[data-app]').forEach((el) => {
 function reflectMute() { $('#muteBtn').classList.toggle('active', muted); }
 
 // ---- toggles -----------------------------------------------------------------
-$('#padToggle').addEventListener('click', () => { toggle('#numpad'); hide('#touch'); hide('#sources'); });
-$('#touchToggle').addEventListener('click', () => { toggle('#touch'); hide('#numpad'); hide('#sources'); });
-$('#srcToggle').addEventListener('click', () => {
-  const opened = !$('#sources').classList.contains('hidden') ? false : true;
-  toggle('#sources'); hide('#numpad'); hide('#touch');
-  if (opened) send({ action: 'getInputs' });   // refresh on open
-});
-function toggle(sel) { $(sel).classList.toggle('hidden'); }
+const PANELS = ['#numpad', '#touch', '#sources', '#channels'];
+function showOnly(target) {
+  const willOpen = $(target).classList.contains('hidden');
+  PANELS.forEach((p) => $(p) && $(p).classList.add('hidden'));
+  if (willOpen) $(target).classList.remove('hidden');
+  return willOpen;
+}
+$('#padToggle').addEventListener('click', () => showOnly('#numpad'));
+$('#touchToggle').addEventListener('click', () => showOnly('#touch'));
+$('#srcToggle').addEventListener('click', () => { if (showOnly('#sources')) send({ action: 'getInputs' }); });
+$('#chToggle').addEventListener('click', () => { if (showOnly('#channels')) send({ action: 'getChannels' }); });
 function hide(sel) { $(sel).classList.add('hidden'); }
 
 // ---- input sources -----------------------------------------------------------
@@ -100,6 +104,34 @@ function renderInputs(devices) {
       toast(`→ ${d.label || d.id}`);
     });
     grid.appendChild(b);
+  }
+}
+
+// ---- channel list ------------------------------------------------------------
+let currentChannelId = null;
+function renderChannels(list) {
+  const box = $('#chList');
+  if (!list || !list.length) {
+    box.innerHTML = '<div class="sources-loading">no channels — TV must be on an antenna/cable input with a completed scan</div>';
+    return;
+  }
+  // sort by numeric channel number when possible
+  list.sort((a, b) => (parseFloat(a.channelNumber) || 0) - (parseFloat(b.channelNumber) || 0));
+  box.innerHTML = '';
+  for (const c of list) {
+    const row = document.createElement('button');
+    row.className = 'ch-row' + (c.channelId === currentChannelId ? ' active-channel' : '');
+    row.innerHTML = `<span class="ch-num"></span><span class="ch-name"></span>`;
+    row.querySelector('.ch-num').textContent = c.channelNumber || '';
+    row.querySelector('.ch-name').textContent = c.channelName || c.channelId;
+    row.addEventListener('click', () => {
+      press(row);
+      currentChannelId = c.channelId;
+      send({ action: 'openChannel', channelId: c.channelId });
+      hide('#channels');
+      toast(`→ ${c.channelNumber ? c.channelNumber + ' ' : ''}${c.channelName || ''}`.trim());
+    });
+    box.appendChild(row);
   }
 }
 
