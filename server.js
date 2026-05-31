@@ -146,6 +146,12 @@ wss.on('connection', (socket) => {
         case 'chDown':   await tv.channelDown(); break;
         case 'power':    await tv.turnOff(); break;              // power ON needs Wake-on-LAN (see README)
         case 'launch':   await tv.launch(APPS[cmd.app] || cmd.app); break;
+        case 'getInputs': {
+          const r = await tv.getInputs();
+          socket.send(JSON.stringify({ type: 'inputs', devices: r.devices || [] }));
+          break;
+        }
+        case 'switchInput': await tv.switchInput(cmd.inputId); break;
         case 'toast':    await tv.toast(cmd.message || 'Hello from the bridge'); break;
         case 'getVolume':await tv._refreshStatus(); break;
         default: break;

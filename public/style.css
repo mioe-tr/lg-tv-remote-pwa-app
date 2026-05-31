@@ -161,6 +161,23 @@ html, body {
 
 .hidden { display: none !important; }
 
+/* ---- input sources ---- */
+.sources-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.sources-loading { grid-column: 1 / -1; text-align: center; color: var(--muted);
+  font-family: "DM Mono", monospace; font-size: 12px; letter-spacing: .08em; padding: 14px 0; }
+.source {
+  display: flex; align-items: center; gap: 10px;
+  border: 1px solid var(--line); background: var(--key); color: var(--text);
+  border-radius: 12px; padding: 14px 14px; font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow); text-align: left;
+  transition: transform .05s, background .1s;
+}
+.source:active { transform: scale(.96); background: var(--key-press); }
+.source .src-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a4b52; flex: 0 0 auto; }
+.source.connected .src-dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.source .src-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source.active-input { border-color: var(--accent-dim); color: var(--accent); }
+
 /* ---- settings sheet ---- */
 .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
   display: flex; align-items: flex-end; justify-content: center; z-index: 50; }

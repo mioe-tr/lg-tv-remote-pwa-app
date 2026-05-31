@@ -1,6 +1,6 @@
 // Cache the app shell so the remote opens instantly, even offline.
 // We never cache /ws or /api — those must always hit the live bridge.
-const CACHE = 'lg-remote-v1';
+const CACHE = 'lg-remote-v2';
 const SHELL = ['/', '/index.html', '/style.css', '/app.js', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 
 self.addEventListener('install', (e) => {

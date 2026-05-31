@@ -17,6 +17,7 @@ function connect() {
     if (m.type === 'state') onState(m);
     else if (m.type === 'prompt') onPrompt();
     else if (m.type === 'volume') { muted = !!m.muted; reflectMute(); }
+    else if (m.type === 'inputs') renderInputs(m.devices);
     else if (m.type === 'err') toast(m.error || 'command failed');
   };
 }
@@ -68,8 +69,39 @@ document.querySelectorAll('[data-app]').forEach((el) => {
 function reflectMute() { $('#muteBtn').classList.toggle('active', muted); }
 
 // ---- toggles -----------------------------------------------------------------
-$('#padToggle').addEventListener('click', () => { $('#numpad').classList.toggle('hidden'); $('#touch').classList.add('hidden'); });
-$('#touchToggle').addEventListener('click', () => { $('#touch').classList.toggle('hidden'); $('#numpad').classList.add('hidden'); });
+$('#padToggle').addEventListener('click', () => { toggle('#numpad'); hide('#touch'); hide('#sources'); });
+$('#touchToggle').addEventListener('click', () => { toggle('#touch'); hide('#numpad'); hide('#sources'); });
+$('#srcToggle').addEventListener('click', () => {
+  const opened = !$('#sources').classList.contains('hidden') ? false : true;
+  toggle('#sources'); hide('#numpad'); hide('#touch');
+  if (opened) send({ action: 'getInputs' });   // refresh on open
+});
+function toggle(sel) { $(sel).classList.toggle('hidden'); }
+function hide(sel) { $(sel).classList.add('hidden'); }
+
+// ---- input sources -----------------------------------------------------------
+let currentInputId = null;
+function renderInputs(devices) {
+  const grid = $('#sourcesGrid');
+  if (!devices || !devices.length) { grid.innerHTML = '<div class="sources-loading">no inputs reported</div>'; return; }
+  // connected first, then by label
+  devices.sort((a, b) => (b.connected - a.connected) || String(a.label).localeCompare(b.label));
+  grid.innerHTML = '';
+  for (const d of devices) {
+    const b = document.createElement('button');
+    b.className = 'source' + (d.connected ? ' connected' : '') + (d.id === currentInputId ? ' active-input' : '');
+    b.innerHTML = `<span class="src-dot"></span><span class="src-label"></span>`;
+    b.querySelector('.src-label').textContent = d.label || d.id;
+    b.addEventListener('click', () => {
+      press(b);
+      currentInputId = d.id;
+      send({ action: 'switchInput', inputId: d.id });
+      hide('#sources');
+      toast(`→ ${d.label || d.id}`);
+    });
+    grid.appendChild(b);
+  }
+}
 
 // ---- touchpad ----------------------------------------------------------------
 (function touchpad() {

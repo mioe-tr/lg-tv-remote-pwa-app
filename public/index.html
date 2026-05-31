@@ -84,8 +84,16 @@
 
   <!-- mode + number toggle -->
   <section class="row foot">
+    <button class="key flat" id="srcToggle">source</button>
     <button class="key flat" id="padToggle">123</button>
     <button class="key flat" id="touchToggle">touchpad</button>
+  </section>
+
+  <!-- input sources (hidden by default) -->
+  <section class="sources hidden" id="sources">
+    <div class="sources-grid" id="sourcesGrid">
+      <div class="sources-loading">loading inputs…</div>
+    </div>
   </section>
 
   <!-- number pad (hidden by default) -->
