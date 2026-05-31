@@ -1,7 +1,7 @@
 {
-  "name": "lg-remote-bridge",
-  "version": "1.0.0",
-  "description": "Persistent LG webOS TV remote bridge + installable PWA, served locally from your Mac.",
+  "name": "lg-remote-pwa",
+  "version": "2.0.0",
+  "description": "Installable PWA remote for LG webOS TVs that connects directly to the TV from the browser — no bridge, no dependencies.",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -9,8 +9,5 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "ws": "^8.18.0"
   }
 }
