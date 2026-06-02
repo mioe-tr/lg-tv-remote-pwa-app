@@ -1,42 +1,60 @@
-# LG Remote Bridge
+# LG Remote (direct PWA)
 
-A fast, persistent remote for LG webOS TVs. A small Node process on your Mac holds **one** live connection to the TV (reusing the saved pairing key, with a heartbeat so it never goes idle), and serves an installable PWA. Because the browser only ever talks to the local bridge — not the TV — you avoid every browser-side wall that breaks pure-PWA remotes (self-signed cert, mixed content, invalid-origin rejection).
+An installable PWA remote for LG webOS TVs that connects **directly to the TV from the browser** — the page speaks the webOS SSAP protocol itself over a WebSocket. There is no bridge/relay process and no runtime dependencies; `server.js` is just a static file host so your phone can load the app over Wi-Fi.
 
-The payoff: a button press is one local round-trip with **no rediscovery and no re-pairing**, which is exactly the lag ThinQ pays on every cold start.
+The pairing key is stored in the browser's `localStorage`, so you accept the on-screen prompt once and never again on that device.
+
+## How the connection works
+
+The browser opens a WebSocket straight to the TV:
+
+- `ws://<TV-IP>:3000` — plaintext SSAP (works from an **http** page)
+- `wss://<TV-IP>:3001` — TLS SSAP, but the TV uses a **self-signed** cert
+
+The client (`public/lgtv.js`) tries the best port for the current page protocol first and falls back to the other.
+
+### ⚠️ Important hosting constraint (read this)
+
+A *fully direct* browser→TV connection is limited by browser security, and these limits apply to **iOS Safari and installed PWAs too**:
+
+| You open the app over… | `ws://:3000` | `wss://:3001` (self-signed) | Works? |
+|---|---|---|---|
+| **http** on the LAN / localhost | ✅ allowed | ❌ cert rejected | ✅ **yes — use this** |
+| **https** (installed PWA) | ❌ mixed content blocked | ❌ cert rejected | ❌ no |
+
+So:
+- **To actually control the TV directly, open the app over plain HTTP** on the same Wi-Fi, e.g. `http://192.168.1.50:3777`. This works in iOS Safari as a tab.
+- An **installed HTTPS home-screen PWA cannot reach the TV directly** — Safari blocks the insecure socket (mixed content) and rejects the TV's self-signed certificate, with no way to override either from JavaScript. This isn't a bug in the app; it's the browser security model. (The old version shipped a Node "bridge" specifically to work around this — that's the trade-off you give up for "no bridge".)
+
+If you need both an installed HTTPS PWA **and** TV control, the only options are: (a) put a small relay/bridge back in, or (b) install a TV-trusted certificate — neither is possible from the PWA alone.
 
 ## Requirements
-- Node.js 18+
-- Mac and TV on the same LAN (DHCP-reserved TV IP recommended)
-- On the TV: General → External Devices / Network → "LG Connect Apps" (or "Mobile TV On") enabled
+- Phone/computer and TV on the same LAN (a DHCP-reserved TV IP is recommended)
+- On the TV: General → External Devices / Network → **"LG Connect Apps"** (or "Mobile TV On") enabled
+- Node.js 18+ *only if* you use the bundled `server.js` to host the files (any static server works)
 
-## Run
+## Run / host the files
 ```bash
-npm install
-npm start
+npm start          # serves ./public over http on port 3777, no npm install needed
 ```
-Then open **http://localhost:3777** on the Mac.
+Then, on the **same Wi-Fi**, open `http://<this-machine-ip>:3777` on your phone.
 
-First launch: enter the TV's IP in the sheet. The TV shows an "allow this device?" prompt — accept it once. The returned client-key is saved to `config.json` and reused forever after, so you never see the prompt again.
+(Any static file host works — `python3 -m http.server`, nginx, etc. The app is pure static files in `public/`.)
 
-You can also preset the IP:
-```bash
-LG_TV_IP=192.168.1.42 npm start
-```
-
-## Install as a PWA
-In Chrome/Edge on the Mac, open the URL and use the install icon in the address bar ("Install LG Remote"). It then launches as its own window. Service worker + manifest are wired up; the app shell is cached so it opens instantly.
-
-## Using it from your iPhone (optional)
-`localhost` is a "secure context" so the PWA installs cleanly **on the Mac**. iOS Safari pointed at `http://<mac-ip>:3777` will work as a remote but **won't register the service worker or install** as a PWA, because plain http over the LAN isn't a secure context. To get full PWA behaviour on the phone you'd need to serve the bridge over HTTPS (e.g. a self-signed cert you trust on the phone, or a local reverse proxy like Caddy with an internal CA). The remote functions either way.
+## First launch
+1. Open the app over http on your phone.
+2. Tap the status pill / the sheet appears → enter the TV's IP → **Save & connect**.
+3. The TV shows an "allow this device?" prompt — accept it once.
+4. The pairing key is saved in the browser and reused forever after on that device.
 
 ## Power ON
-`turnOff` works over the socket. Powering a TV **on** can't go over the same socket (the TV's network service is asleep) — it needs Wake-on-LAN. If you want that, enable "Mobile TV On" / "Turn on via Wi-Fi" on the TV and we can add a WoL magic-packet step keyed to the TV's MAC.
+`turnOff` works over the socket. Powering a TV **on** can't go over the same socket (the TV's network service is asleep) — that needs Wake-on-LAN, which a browser can't send. Power-off, all other controls, inputs, channels, apps, and the touchpad work directly.
 
 ## Files
-- `server.js` — bridge: serves the PWA, relays browser ⇄ TV
-- `lib/lgclient.js` — SSAP client (pairing, requests, pointer/input socket, heartbeat, auto-reconnect)
-- `public/` — the PWA (html/css/js, manifest, service worker, icons)
-- `config.json` — created at runtime; stores TV IP + client-key
+- `public/lgtv.js` — in-browser SSAP client (pairing, requests, pointer/input socket, heartbeat, auto-reconnect, port fallback)
+- `public/app.js` — UI wiring; routes every button straight to the TV
+- `public/` — the rest of the PWA (html/css, manifest, service worker, icons)
+- `server.js` — optional static file host (zero dependencies)
 
 ## App shortcut IDs
-Defined in `server.js` (`APPS`). Some IDs vary by region/firmware. To find the exact IDs your TV uses, the client can call `ssap://com.webos.applicationManager/listLaunchPoints` — say the word and I'll wire a "discover apps" button.
+Defined in `public/app.js` (`APPS`). Some IDs vary by region/firmware. To discover the exact IDs your TV uses, the client can call `ssap://com.webos.applicationManager/listLaunchPoints` — easy to wire into a "discover apps" button if you want it.

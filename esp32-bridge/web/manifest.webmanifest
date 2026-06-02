@@ -1,7 +1,7 @@
 {
   "name": "LG Remote",
   "short_name": "LG Remote",
-  "description": "Direct remote for LG webOS TVs — connects straight to the TV from the browser",
+  "description": "Fast persistent remote for LG webOS TVs",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

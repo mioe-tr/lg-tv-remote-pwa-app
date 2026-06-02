@@ -1,74 +1,31 @@
 'use strict';
 
-// ---- direct TV connection (no bridge — the browser speaks SSAP itself) -------
-const $ = (s) => document.querySelector(s);
+// ---- bridge connection (local, same-origin WS — no cert/mixed-content issues)
+let ws = null;
 let muted = false;
+const $ = (s) => document.querySelector(s);
 
-// Persisted settings live in localStorage so an installed PWA remembers them.
-const STORE = {
-  get ip() { try { return localStorage.getItem('lg.ip') || ''; } catch (_) { return ''; } },
-  set ip(v) { try { v ? localStorage.setItem('lg.ip', v) : localStorage.removeItem('lg.ip'); } catch (_) {} },
-  get key() { try { return localStorage.getItem('lg.key') || null; } catch (_) { return null; } },
-  set key(v) { try { v ? localStorage.setItem('lg.key', v) : localStorage.removeItem('lg.key'); } catch (_) {} }
-};
+function connect() {
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws`);
 
-// App-id shortcuts (moved here from the old server).
-const APPS = {
-  netflix: 'netflix',
-  youtube: 'youtube.leanback.v4',
-  disney: 'com.disney.disneyplus-prod',
-  primevideo: 'amazon',
-  spotify: 'spotify-beehive',
-  appletv: 'com.apple.appletv',
-  browser: 'com.webos.app.browser',
-  livetv: 'com.webos.app.livetv'
-};
+  ws.onopen = () => setStatus('wait', 'linking');
+  ws.onclose = () => { setStatus('off', 'bridge'); setTimeout(connect, 1500); };
+  ws.onerror = () => {};
+  ws.onmessage = (e) => {
+    let m; try { m = JSON.parse(e.data); } catch (_) { return; }
+    if (m.type === 'state') onState(m);
+    else if (m.type === 'prompt') onPrompt();
+    else if (m.type === 'volume') { muted = !!m.muted; reflectMute(); }
+    else if (m.type === 'inputs') renderInputs(m.devices);
+    else if (m.type === 'channels') renderChannels(m.list);
+    else if (m.type === 'err') toast(m.error || 'command failed');
+  };
+}
 
-const tv = new LGTV({
-  ip: STORE.ip || null,
-  clientKey: STORE.key,
-  onKey: (key) => { STORE.key = key; }
-});
-
-tv.on('state', (s) => onState(s));
-tv.on('prompt', () => onPrompt());
-tv.on('volume', (v) => { muted = !!v.muted; reflectMute(); });
-tv.on('error', (msg) => toast(msg));
-tv.on('log', (m) => console.log('[tv]', m));
-
-// Route every UI action straight to the TV. Mirrors the old bridge switch.
-async function send(obj) {
-  try {
-    switch (obj.action) {
-      case 'button':   await tv.button(obj.name); break;
-      case 'click':    await tv.click(); break;
-      case 'move':     await tv.move(obj.dx, obj.dy, obj.drag); break;
-      case 'scroll':   await tv.scroll(obj.dx, obj.dy); break;
-      case 'volUp':    await tv.volumeUp(); break;
-      case 'volDown':  await tv.volumeDown(); break;
-      case 'mute':     await tv.setMute(obj.value); break;
-      case 'chUp':     await tv.channelUp(); break;
-      case 'chDown':   await tv.channelDown(); break;
-      case 'power':    await tv.turnOff(); break;
-      case 'launch':   await tv.launch(APPS[obj.app] || obj.app); break;
-      case 'switchInput': await tv.switchInput(obj.inputId); break;
-      case 'openChannel': await tv.openChannel(obj.channelId); break;
-      case 'getInputs': {
-        const r = await tv.getInputs();
-        renderInputs(r.devices || []);
-        break;
-      }
-      case 'getChannels': {
-        const r = await tv.getChannelList();
-        renderChannels(r.channelList || []);
-        break;
-      }
-      default: break;
-    }
-  } catch (e) {
-    if (!tv.paired) toast('not connected');
-    else toast(e.message || 'command failed');
-  }
+function send(obj) {
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj));
+  else toast('bridge offline');
 }
 
 // ---- status -----------------------------------------------------------------
@@ -208,13 +165,16 @@ ipInput.addEventListener('input', () => {
   }
 });
 
-$('#ipSave').addEventListener('click', () => {
+$('#ipSave').addEventListener('click', async () => {
   const ip = $('#ipInput').value.trim().replace(/,/g, '.');
-  if (!/^[0-9.]+$/.test(ip)) { $('#pairHint').textContent = 'That doesn’t look like an IP.'; return; }
-  STORE.ip = ip;
-  $('#pairHint').textContent = 'Connecting… if the TV shows a prompt, accept it.';
-  if (ip !== tv.ip) tv.setIp(ip);   // changing the TV re-pairs and reconnects
-  else tv.start();                  // same TV: connect if not already
+  if (!/^[0-9.]+$/.test(ip)) { $('#pairHint').textContent = 'That doesn\u2019t look like an IP.'; return; }
+  $('#pairHint').textContent = 'Connecting…';
+  try {
+    const r = await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ip }) });
+    const j = await r.json();
+    if (j.error) $('#pairHint').textContent = 'Error: ' + j.error;
+    else $('#pairHint').textContent = 'Saved. If the TV shows a prompt, accept it.';
+  } catch (_) { $('#pairHint').textContent = 'Could not reach the bridge.'; }
 });
 
 // ---- toast -------------------------------------------------------------------
@@ -243,6 +203,4 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 
-// ---- boot --------------------------------------------------------------------
-if (STORE.ip) tv.start();
-else { openSheet(); setStatus('off', 'no tv'); }
+connect();
