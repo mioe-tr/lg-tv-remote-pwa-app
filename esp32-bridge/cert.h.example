@@ -1,0 +1,15 @@
+// Placeholder showing the symbols the firmware expects from cert.h.
+// DO NOT use this as-is — run tools/make_cert.sh to generate a real cert.h:
+//
+//     ./tools/make_cert.sh 192.168.1.60 lgbridge
+//
+// That writes cert.h (git-ignored, contains the private key) and lg-bridge.crt
+// (install + trust on your iPhone).
+#pragma once
+#include <Arduino.h>
+
+static const uint8_t CERT_DER[] PROGMEM = { 0x00 };
+static const size_t  CERT_DER_len = 0;
+
+static const uint8_t PKEY_DER[] PROGMEM = { 0x00 };
+static const size_t  PKEY_DER_len = 0;
